@@ -1,0 +1,130 @@
+name:                interview-questions
+version:             0.1.0.0
+-- synopsis:
+-- description:
+license:             BSD3
+license-file:        LICENSE
+author:              Author name here
+maintainer:          example@example.com
+copyright:           2017 Author name here
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Potential, LinkedSet, UnionFind, Cayley
+  build-depends:       base >= 4.7 && < 5
+                     , common
+                     , containers >= 0.5.9
+                     , text-format-simple
+                     , mtl
+                     , multimap
+  default-language:    Haskell2010
+
+
+executable game-of-thrones
+  hs-source-dirs:      questions
+  main-is:             GameOfThrones.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -main-is GameOfThrones
+  build-depends:       base
+                     , interview-questions
+                     , common
+  default-language:    Haskell2010
+
+executable witness
+  hs-source-dirs:      questions
+  main-is:             Witness.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -main-is Witness
+  build-depends:       base
+                     , interview-questions
+                     , containers
+                     , common
+  default-language:    Haskell2010
+
+executable wiki-links
+  hs-source-dirs:      questions
+  main-is:             WikiLinks.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -main-is WikiLinks
+  build-depends:       base
+                     , bytestring
+                     , common
+                     , containers
+                     , dead-simple-json
+                     , dom-selector
+                     , html-conduit
+                     , http-conduit
+                     , interview-questions
+                     , mtl
+                     , text
+                     , text-format-simple
+                     , xml-conduit
+  default-language:    Haskell2010
+
+test-suite potential-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             PotentialTest.hs
+  build-depends:       HUnit
+                     , base
+                     , common
+                     , interview-questions
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+test-suite cayley-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             CayleyTest.hs
+  build-depends:       HUnit
+                     , base
+                     , common
+                     , interview-questions
+                     , random
+                     , QuickCheck
+                     , containers
+                     , tasty
+                     , tasty-hunit
+                     , tasty-quickcheck
+  other-modules:       Arbitraries
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+test-suite union-find-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             UnionFindTest.hs
+  build-depends:       HUnit
+                     , base
+                     , common
+                     , interview-questions
+                     , mtl
+                     , random
+                     , QuickCheck
+                     , containers
+                     , tasty
+                     , tasty-quickcheck
+  other-modules:       Arbitraries
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+test-suite linked-set-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             LinkedSetTest.hs
+  build-depends:       HUnit
+                     , base
+                     , common
+                     , interview-questions
+                     , QuickCheck
+                     , containers
+                     , tasty
+                     , tasty-quickcheck
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/githubuser/comp-parser
+
+

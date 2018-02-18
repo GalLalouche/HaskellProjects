@@ -1,0 +1,18 @@
+flags: {}
+extra-package-dbs: []
+packages:
+- '.'
+- location: /google/src/cloud/lalouche/python/google3/experimental/users/lalouche/hs/common/
+  extra-dep: true
+extra-deps:
+- aeson-1.2.3.0
+- binary-0.8.5.1
+- conduit-extra-1.2.1
+- containers-0.5.10.2
+- dead-simple-json-0.1.2
+- dom-selector-0.2.0.1
+- http-conduit-2.2.4
+- mmorph-1.1.0
+- text-format-simple-1.1.0
+- typed-process-0.2.0.0
+resolver: lts-9.1

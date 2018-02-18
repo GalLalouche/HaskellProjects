@@ -1,0 +1,181 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE QuasiQuotes #-}
+
+module WikiLinks where
+--
+-- import Common.Foldables
+-- import Common.Operators
+--
+-- import Text.XML.Cursor (fromDocument, attribute, Cursor)
+-- import Text.HTML.DOM (parseLBS)
+-- import Text.XML.Selector
+-- import Text.XML.Selector.TH
+-- import Text.XML.Scraping (innerHtml, innerText)
+--
+-- import qualified Data.ByteString.Char8 as B
+-- import qualified Data.Text.Lazy as LazyT
+-- import qualified Data.Text as T
+-- import qualified Data.Text.IO as T
+-- import qualified Data.ByteString.Lazy.Char8 as LazyB
+-- import Text.Show
+--
+-- import Control.Concurrent (threadDelay)
+-- import Control.Monad (forM)
+-- import Control.Monad.Identity
+-- import Control.Monad.Reader
+-- import Control.Monad.State
+-- import Data.Foldable (toList)
+-- import Data.List (isPrefixOf, intercalate)
+-- import Data.Map (Map, elems, lookup)
+-- import Data.Maybe (fromJust)
+-- import Debug.Trace
+-- import Prelude hiding (lookup)
+--
+-- import LinkedSet
+-- import qualified LinkedSet as LS (empty)
+--
+-- import Network.HTTP.Simple
+-- import Text.DeadSimpleJSON (JSON)
+-- import qualified Text.DeadSimpleJSON as JSON
+--
+-- import Text.Format
+--
+--
+-- type Url = String
+--
+-- data Language = Language {
+--     str :: String
+--   , rtl :: Bool
+-- }
+-- --
+-- -- english = Language "en" False
+-- -- hebrew = Language "he" True
+--
+-- data Page = Page {
+--     lang :: Language
+--   , name :: String
+--   , url :: Url
+--   , links :: [Url]
+-- } deriving (Ord, Eq, Show)
+--
+-- toText
+-- instance Show Page where
+--   show (Page lang name url links) = format "Page {name={0}, url={1}, links={2}}"
+--     [utfShow name, utfShow url, utfShow <$$> links] where
+--     utfShow = T.pr
+--
+--
+-- type Cycle = [Page]
+-- type Path = LinkedSet Page
+--
+-- data Config = Config {
+--     language :: String
+--   , linkIndex :: Int -- 0 based
+-- }
+--
+-- type ConfigReader a = Reader Config a
+-- type ConfigIOReader a = ReaderT Config IO a
+--
+-- orRaise :: String -> Maybe a -> a
+-- orRaise err Nothing = error err
+-- orRaise _ (Just x) = x
+--
+-- removeParens :: String -> Maybe String
+-- removeParens s = aux s 0 [] where
+--   aux [] 0 res = Just $ reverse res
+--   aux [] _ _ = Nothing
+--   -- Links might have parenthesised text, e.g., "Nirvana (band)" whose href will be Nirvana_(Band).
+--   -- In such cases, while the text of the link will be deleted by this function, we don't care as
+--   -- long as the href is kept intact.
+--   aux ('_':'(':xs) n res = let
+--       (untilCloser, rest) = span (/= ')') xs
+--       allBracket = reverse $ format "_({0})" [untilCloser]
+--     in aux (tail rest) n (allBracket ++ res)
+--   aux ('(':xs) n res = aux xs (n + 1) res
+--   -- Ignore negative counts; A hack to not count 1) blah blah, 2) blah blah.
+--   aux (')':xs) n res = aux xs (max 0 (n - 1)) res
+--   aux (x:xs) n res = aux xs n $ if n /= 0 then res else x:res
+--
+-- findCycleFromRandom :: ConfigIOReader Cycle
+-- findCycleFromRandom = randomPage >>= getPage >>= findCycle
+--
+-- findCycle :: Page -> ConfigIOReader Cycle
+-- findCycle initialPage = aux initialPage LS.empty where
+--   aux :: Page -> Path -> ConfigIOReader Cycle
+--   aux currentPage currentPath = case index currentPage currentPath of
+--     Just i -> return $ getCycle currentPath i
+--     Nothing -> do
+--       nextPage <- nthLink currentPage
+--       liftIO $ T.putStrLn $ T.pack $ format "Following link from <{0}> to <{1}>"
+--         [name currentPage, name nextPage]
+--       let nextPath = currentPath |> appendOrNothing currentPage |>
+--                          orRaise "This should never happen!"
+--       liftIO $ threadDelay 10000
+--       aux nextPage nextPath
+--   getCycle :: Path -> Int -> Cycle
+--   getCycle p i = p |> toList |> drop (i - 1)
+--
+-- openUrl :: Url -> IO String
+-- openUrl u = let response = parseRequest u >>= httpBS in response <$$> getResponseBody <$$> B.unpack
+--
+-- fullifyLink :: Url -> ConfigReader Url
+-- fullifyLink link = do
+--   lang <- asks language
+--   return $ format "http://{0}.wikipedia.org{1}" [lang, link]
+--
+-- pageFromHtml :: Url -> String -> ConfigReader Page
+-- pageFromHtml url htmlString = do
+--   let queries = map ("div.mw-parser-output>" ++) ["p", "ul"]
+--   let doc = toDocument htmlString
+--   let hrefs = queries |> concatMap (queryToHrefs doc)
+--   fullLinks <- (hrefs |> filter (isPrefixOf "/wiki/")) `forM` fullifyLink
+--   let title = doc |> queryT [jq| head title |] |> innerText |> LazyT.unpack
+--   let getLinks = fullLinks
+--   return $ Page title url getLinks
+--   where
+--     toDocument :: String -> Cursor
+--     toDocument = LazyB.pack .> parseLBS .> fromDocument
+--     fixParagraph p = let
+--         asString = p |> innerHtml |> LazyT.unpack
+--       in asString |> removeParens |> orRaise (msg asString)
+--     getHrefs p = map T.unpack $ p |> toDocument |> queryT [jq| a |] >>= attribute "href"
+--     queryToHrefs :: Cursor -> String -> [String]
+--     queryToHrefs doc q = query q doc <$$> fixParagraph >>= getHrefs
+--     msg p = format "Could not remove parens from the body of <{0}> in url {1}" [p, url]
+--
+-- getPage :: Url -> ConfigIOReader Page
+-- getPage url = let
+--     openUrl' = openUrl .> liftIO
+--     pageFromHtml' = pageFromHtml ..> runReader ..> reader
+--   in openUrl' url >>= pageFromHtml' url
+--
+-- nthLink :: Page -> ConfigIOReader Page
+-- nthLink page = do
+--   n <- asks linkIndex
+--   let msg = format "Could not find enough links (needed <{0}> in page <{1}>)" [show n, show page]
+--   page |> links |> nth n |> orRaise msg |> getPage
+--
+-- randomPage :: ConfigIOReader Url
+-- randomPage = do
+--   lang <- asks language
+--   let randomPageUrl = format "https://{0}.wikipedia.org/w/api.php?action=query&generator=random&grnnamespace=0&format=json&grnlimit=1&inprop=url&prop=info" [lang]
+--   response <- liftIO $ openUrl randomPageUrl
+--   let json = read response |> JSON.top
+--   let pages = json / "query" / "pages" |> toMap
+--   let page = pages |> elems |> head
+--   return $ page `str` "fullurl" where
+--     str :: JSON.Value -> String -> String
+--     str (JSON.Object map) s = map |> lookup s |> fromJust |> JSON.convert
+--     (/) :: JSON.Value -> String -> JSON.Value
+--     (JSON.Object map) / s = map |> lookup s |> fromJust |> JSON.convert
+--     toMap (JSON.Object e) = e
+--
+-- removeLinks :: Page -> Page
+-- removeLinks (Page l t u _) = Page l t u []
+--
+main = do
+  print $ "HELLO WORLD!"
+--   let c = Config "en" 0
+--   cycle <- runReaderT findCycleFromRandom c <$$> (<$$> removeLinks)
+--   T.putStrLn $ T.pack $ show cycle
